@@ -49,9 +49,9 @@
       - name: "{{ network_name }}"
     restart_policy: "unless-stopped"
     # prod cert
-    # command: certonly --webroot -w /var/www/certbot --email tonick2001@inbox.ru --agree-tos --no-eff-email -d {{ item.item }}
+    command: certonly --webroot -w /var/www/certbot --email tonick2001@inbox.ru --agree-tos --no-eff-email -d {{ item.item }}
     # test cert
-    command: certonly --webroot -w /var/www/certbot --email "{{ letsencrypt_email }}" --agree-tos --no-eff-email --staging -d "{{ item.item }}"
+    #command: certonly --webroot -w /var/www/certbot --email "{{ letsencrypt_email }}" --agree-tos --no-eff-email --staging -d "{{ item.item }}"
   loop: "{{ letsencrypt_certs.results }}"
   when: not item.stat.exists
 

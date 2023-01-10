@@ -1,0 +1,8 @@
+[docker_vm]
+docker-vm25 
+
+[nginx_prx]
+nginx-proxy
+
+[test]
+temp-vm ansible_ssh_host=192.168.4.15

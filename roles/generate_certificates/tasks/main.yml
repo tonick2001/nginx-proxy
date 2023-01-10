@@ -1,0 +1,78 @@
+- name: Create conf dir
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: "{{ item.state }}"
+    mode: "{{ item.mode }}"
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+  with_items:
+    - { path: "{{ nginx_conf_dir }}/conf.d", state: directory, mode: 0770, owner: root, group: root }
+    - { path: "{{ cerbot_conf_dir }}/conf", state: directory, mode: 0770, owner: root, group: root }
+
+- name: Check if certificate already exist
+  ansible.builtin.stat:
+    path: /usr/share/cerbot/conf/live/{{ item }}/cert.pem
+  with_items: "{{ certbot_dnsnames }}"
+  register: letsencrypt_certs
+
+- name: Check opened port 80
+  ansible.builtin.wait_for:
+    port: 80
+    timeout: 1
+  register: port_check
+  ignore_errors: true
+
+- name: Up certbot standalone Apache
+  community.docker.docker_container:
+    name: apache
+    image: httpd:2.4
+    volumes:
+      - "{{ cerbot_conf_dir }}www:/usr/local/apache2/htdocs:rw"
+    ports:
+      - 80:80
+  when: port_check.failed | bool
+
+- name: Debug check port failed tasks
+  ansible.builtin.debug:
+    msg: port_check.failed = "{{ port_check.failed }}"
+
+- name: Run Cerbot container
+  community.docker.docker_container:
+    name: "{{ cerbot_hostname }}"
+    image: "{{ cerbot_image }}"
+    memory: "{{ cerbot_memory }}"
+    volumes:
+      - "{{ cerbot_conf_dir }}conf:/etc/letsencrypt:rw"
+      - "{{ cerbot_conf_dir }}www:/var/www/certbot:rw"
+      - "{{ cerbot_conf_dir }}log:/var/log/letsencrypt:rw"
+    networks:
+      - name: "{{ network_name }}"
+    restart_policy: "unless-stopped"
+    # prod cert
+    # command: certonly --webroot -w /var/www/certbot --email tonick2001@inbox.ru --agree-tos --no-eff-email -d {{ item.item }}
+    # test cert
+    command: certonly --webroot -w /var/www/certbot --email "{{ letsencrypt_email }}" --agree-tos --no-eff-email --staging -d "{{ item.item }}"
+  loop: "{{ letsencrypt_certs.results }}"
+  when: not item.stat.exists
+
+- name: Wait until the cert.pem is create
+  ansible.builtin.wait_for:
+    path: /usr/share/cerbot/conf/live/{{ item }}/cert.pem
+    state: present
+  with_items: "{{ certbot_dnsnames }}"
+  register: waitfor
+
+- name: Debug waitfor tasks
+  ansible.builtin.debug:
+    msg: Completed "{{ waitfor }}"
+
+- name: Dowm and delete Apache for certbot
+  community.docker.docker_container:
+    name: apache
+    state: absent
+  when: port_check.failed | bool
+
+- name: Dowm and delete cerbot
+  community.docker.docker_container:
+    name: "{{ cerbot_hostname }}"
+    state: absent

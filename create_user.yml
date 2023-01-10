@@ -1,0 +1,10 @@
+- hosts: "{{ srv }}"
+  become: true
+  gather_facts: false
+  roles:
+    - { role: docker, tags: ["docker"]} 
+    - { role: Create_user, tags: ["Create_user"]} 
+    
+    
+    
+    

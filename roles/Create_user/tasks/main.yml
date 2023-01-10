@@ -1,0 +1,41 @@
+- name: Generate an OpenSSH keypair with the default values (4096 bits, rsa)
+  become: false
+  connection: local
+  delegate_to: 127.0.0.1
+  run_once: true
+  community.crypto.openssh_keypair:
+    path: ~/.ssh/{{ ansible_ssh_user }}
+
+- name: Install stormssh module
+  connection: local
+  become: false
+  delegate_to: 127.0.0.1
+  run_once: true
+  ansible.builtin.pip:
+    name: stormssh
+
+- name: Add a host in the configuration
+  become: false
+  # connection: local
+  delegate_to: 127.0.0.1
+  run_once: true
+  community.general.ssh_config:
+    user: "{{ ansible_ssh_user }}"
+    host: "{{ inventory_hostname }}"
+    hostname: "{{ ansible_ssh_host }}"
+    identity_file: "/home/{{ ansible_ssh_user }}/.ssh/{{ ansible_ssh_user }}"
+    port: '22'
+    state: present
+
+- name: Create deploy user
+  become: true
+  ansible.builtin.user:
+    name: "{{ ansible_ssh_user }}"
+    # password: "!"
+    groups:
+      - docker
+    append: true
+- name: Add user authorized key
+  ansible.posix.authorized_key:
+    user: "{{ ansible_ssh_user }}"
+    key: "{{ lookup('file', '/home/{{ ansible_ssh_user }}/.ssh/{{ ansible_ssh_user }}.pub') }}"

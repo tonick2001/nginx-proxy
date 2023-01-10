@@ -1,0 +1,48 @@
+# - name: Create nginx volume
+#   docker_volume:
+#     name: vaultwdata
+#     driver: local
+- name: Create docker Network for nginx-proxy
+  community.docker.docker_network:
+    name: "{{ network_name }}"
+    ipam_config:
+      - subnet: "{{ network_subnet }}"
+    state: present
+
+- name: Copy nginx conf
+  become: true
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: "{{ item.mode }}"
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+  with_items:
+    - {src: 'templates/conf.d/default.conf', dest: '/{{ nginx_conf_dir }}/conf.d/default.conf', mode: 0770, owner: root, group: root}
+    - {src: 'templates/conf.d/vaultwarden.conf', dest: '/{{ nginx_conf_dir }}/conf.d/vaultwarden.conf', mode: 0770, owner: root, group: root}
+    - {src: 'templates/example.html', dest: '/{{ nginx_conf_dir }}/example.html', mode: 0770, owner: root, group: root}
+    - {src: 'templates/letsencrypt/dhparam.pem', dest: '/{{ cerbot_conf_dir }}/conf/ssl-dhparam.pem', mode: 0770, owner: root, group: root}
+    - {src: 'templates/letsencrypt/options-ssl-nginx.conf', dest: '/{{ cerbot_conf_dir }}/conf/options-ssl-nginx.conf', mode: 0770, owner: root, group: root}
+  notify: Restart nginx container
+
+# - name: Generate Diffie-Hellman parameters with the default size (4096 bits)
+#   community.crypto.openssl_dhparam:
+#     path: /{{ cerbot_conf_dir }}/conf/ssl-dhparam.pem
+
+- name: Run nginx container
+  community.docker.docker_container:
+    name: "{{ nginx_hostname }}"
+    image: "{{ nginx_image }}"
+    memory: "{{ nginx_memory }}"
+    volumes:
+      - "{{ nginx_conf_dir }}/conf.d:/etc/nginx/conf.d/:ro"
+      - "{{ nginx_conf_dir }}/example.html:/var/www/html/{{ vaultwarden_dnsname }}/index.html:ro"
+
+      - "{{ cerbot_conf_dir }}conf:/etc/letsencrypt:rw"
+      - "{{ cerbot_conf_dir }}www:/var/www/certbot:rw"
+    ports:
+      - 80:80
+      - 443:443
+    networks:
+      - name: "{{ network_name }}"
+    restart_policy: "unless-stopped"

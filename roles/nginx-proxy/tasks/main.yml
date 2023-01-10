@@ -37,7 +37,6 @@
     volumes:
       - "{{ nginx_conf_dir }}/conf.d:/etc/nginx/conf.d/:ro"
       - "{{ nginx_conf_dir }}/example.html:/var/www/html/{{ vaultwarden_dnsname }}/index.html:ro"
-
       - "{{ cerbot_conf_dir }}conf:/etc/letsencrypt:rw"
       - "{{ cerbot_conf_dir }}www:/var/www/certbot:rw"
     ports:

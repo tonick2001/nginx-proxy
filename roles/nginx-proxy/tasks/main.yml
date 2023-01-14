@@ -21,7 +21,7 @@
     - {src: 'templates/nginx.conf', dest: '/{{ nginx_conf_dir }}/nginx.conf', mode: '0644', owner: root, group: root}
     - {src: 'templates/conf.d/default.conf', dest: '/{{ nginx_conf_dir }}/conf.d/default.conf', mode: '0770', owner: root, group: root}
     - {src: 'templates/conf.d/vaultwarden.conf', dest: '/{{ nginx_conf_dir }}/conf.d/vaultwarden.conf', mode: '0770', owner: root, group: root}
-    - {src: 'templates/example.html', dest: '/{{ nginx_conf_dir }}/example.html', mode: '0770', owner: root, group: root}
+    - {src: 'templates/example.html', dest: '/{{ nginx_conf_dir }}/example.html', mode: '0774', owner: root, group: root}
     - {src: 'templates/letsencrypt/dhparam.pem', dest: '/{{ cerbot_conf_dir }}/conf/ssl-dhparam.pem', mode: '0770', owner: root, group: root}
     - {src: 'templates/letsencrypt/options-ssl-nginx.conf', dest: '/{{ cerbot_conf_dir }}/conf/options-ssl-nginx.conf', mode: '0770', owner: root, group: root}
   notify: Restart nginx container
@@ -38,7 +38,7 @@
     volumes:
       - "{{ nginx_conf_dir }}/nginx.conf:/etc/nginx/nginx.conf:ro"
       - "{{ nginx_conf_dir }}/conf.d:/etc/nginx/conf.d/:ro"
-      - "{{ nginx_conf_dir }}/example.html:/var/www/html/{{ vaultwarden_dnsname }}/index.html:ro"
+      - "{{ nginx_conf_dir }}/example.html:/var/www/html/index.html:ro"
       - "{{ cerbot_conf_dir }}conf:/etc/letsencrypt:rw"
       - "{{ cerbot_conf_dir }}www:/var/www/certbot:rw"
       - "/etc/timezone:/etc/timezone:ro"
